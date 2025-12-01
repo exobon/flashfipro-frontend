@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FlashFipro Live</title>
+  <style>
+    :root {
+      --primary-bg: #020617;
+      --panel-bg: #0f172a;
+      --accent-red: #dc2626;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --accent-blue: #3b82f6;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border-color: #334155;
+      --gain-color: #10b981;
+      --loss-color: #ef4444;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--primary-bg);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-weight: 500;
+    }
+    
+    /* 16:9 Aspect Ratio Container */
+    .stream-container {
+      position: relative;
+      width: 100%;
+      height: 0;
+      padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+      overflow: hidden;
+    }
+    
+    .stream-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 2.5%;
+      gap: 2%;
+      background: linear-gradient(135deg, #020617 0%, #0c1120 100%);
+    }
+    
+    /* Top Header */
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1.5%;
+      border-bottom: 2px solid var(--border-color);
+    }
+    
+    .channel-info {
+      flex: 1;
+    }
+    
+    .channel-name {
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 900;
+      letter-spacing: 0.05em;
+      background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+    
+    .live-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 0.5%;
+    }
+    
+    .live-badge {
+      background: var(--accent-red);
+      color: white;
+      padding: clamp(0.2rem, 0.5vw, 0.3rem) clamp(0.8rem, 1.5vw, 1rem);
+      border-radius: 4px;
+      font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    
+    .subscribe-btn {
+      padding: clamp(0.6rem, 1.2vw, 0.8rem) clamp(1.5rem, 3vw, 2rem);
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent-red) 0%, #b91c1c 100%);
+      color: white;
+      font-weight: 800;
+      font-size: clamp(0.9rem, 1.8vw, 1.2rem);
+      letter-spacing: 0.05em;
+      box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.3s ease;
+    }
+    
+    .subscribe-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(220, 38, 38, 0.6);
+    }
+    
+    /* Main Content Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.8fr 1.2fr;
+      gap: 2.5%;
+      flex: 1;
+      height: 75%;
+    }
+    
+    /* Left Column */
+    .left-column {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 3%;
+    }
+    
+    /* Breaking News Section */
+    .breaking-news {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+      border: 2px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      padding: clamp(1rem, 2vw, 1.5rem);
+      position: relative;
+      overflow: hidden;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    .breaking-label {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: var(--accent-red);
+      color: white;
+      padding: 0.3rem 1.5rem;
+      font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-bottom-right-radius: 8px;
+    }
+    
+    .breaking-title {
+      font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    
+    .breaking-subtitle {
+      font-size: clamp(0.9rem, 1.8vw, 1.2rem);
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    
+    /* Price Grid */
+    .price-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3%;
+    }
+    
+    .price-panel {
+      background: var(--panel-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: clamp(1rem, 2vw, 1.5rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+    
+    .price-panel:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent-blue);
+    }
+    
+    .symbol-large {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 900;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+    
+    .price-large {
+      font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    
+    .change-large {
+      font-size: clamp(1rem, 2vw, 1.5rem);
+      font-weight: 700;
+      padding: 0.3rem 1rem;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    
+    /* Right Column */
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      gap: 3%;
+    }
+    
+    /* Market Movers */
+    .movers-section {
+      background: var(--panel-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: clamp(1rem, 2vw, 1.5rem);
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    
+    .section-title {
+      font-size: clamp(1rem, 2vw, 1.5rem);
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    
+    .movers-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      flex: 1;
+    }
+    
+    .mover-column {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .column-title {
+      font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+      font-weight: 700;
+      margin-bottom: 0.8rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid;
+    }
+    
+    .gainers-title {
+      color: var(--gain-color);
+      border-color: var(--gain-color);
+    }
+    
+    .losers-title {
+      color: var(--loss-color);
+      border-color: var(--loss-color);
+    }
+    
+    .mover-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      flex: 1;
+    }
+    
+    .mover-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.8rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    
+    .mover-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+    
+    .mover-symbol {
+      font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+      font-weight: 700;
+    }
+    
+    .mover-price {
+      font-size: clamp(1rem, 2vw, 1.4rem);
+      font-weight: 700;
+    }
+    
+    .positive {
+      color: var(--gain-color);
+    }
+    
+    .negative {
+      color: var(--loss-color);
+    }
+    
+    /* Crypto Section */
+    .crypto-section {
+      background: var(--panel-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: clamp(1rem, 2vw, 1.5rem);
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    
+    .crypto-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      flex: 1;
+    }
+    
+    .crypto-item {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      background: rgba(59, 130, 246, 0.1);
+      border-radius: 12px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .crypto-item:hover {
+      transform: scale(1.05);
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+    
+    .crypto-symbol {
+      font-size: clamp(1.2rem, 2.4vw, 1.8rem);
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      color: var(--accent-blue);
+    }
+    
+    .crypto-price {
+      font-size: clamp(1.1rem, 2.2vw, 1.6rem);
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    
+    .crypto-change {
+      font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+      font-weight: 600;
+      padding: 0.2rem 0.8rem;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Footer */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 1%;
+      border-top: 2px solid var(--border-color);
+      font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+      color: var(--text-secondary);
+    }
+    
+    .time-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .date-time {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .news-ticker {
+      flex: 1;
+      margin: 0 2rem;
+      overflow: hidden;
+      white-space: nowrap;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 0.5rem 1rem;
+    }
+    
+    .ticker-content {
+      display: inline-block;
+      animation: ticker 30s linear infinite;
+      padding-left: 100%;
+      font-size: clamp(0.8rem, 1.5vw, 1rem);
+    }
+    
+    @keyframes ticker {
+      0% {
+        transform: translateX(0);
+      }
+      100% {
+        transform: translateX(-100%);
+      }
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+        gap: 2%;
+        overflow-y: auto;
+      }
+      
+      .price-grid {
+        grid-template-columns: 1fr;
+        gap: 2%;
+      }
+      
+      .stream-content {
+        padding: 3%;
+        gap: 1.5%;
+      }
+      
+      .top-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      .subscribe-btn {
+        align-self: flex-end;
+      }
+      
+      .movers-grid,
+      .crypto-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .news-ticker {
+        display: none;
+      }
+      
+      .footer {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+      }
+      
+      .time-info {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stream-container">
+    <div class="stream-content">
+      <!-- Top Header -->
+      <div class="top-header">
+        <div class="channel-info">
+          <div class="channel-name">FLASHFIPRO</div>
+          <div class="live-status">
+            <div class="live-badge">● LIVE</div>
+          </div>
+        </div>
+        <button class="subscribe-btn">SUBSCRIBE NOW</button>
+      </div>
+      
+      <!-- Main Content Grid -->
+      <div class="main-grid">
+        <!-- Left Column -->
+        <div class="left-column">
+          <!-- Breaking News -->
+          <div class="breaking-news">
+            <div class="breaking-label">BREAKING</div>
+            <div class="breaking-title">Apple delays next-gen AI rollout to 2026</div>
+            <div class="breaking-subtitle">Apple shifts major AI features citing integration delays.</div>
+          </div>
+          
+          <!-- Price Grid -->
+          <div class="price-grid">
+            <!-- NVDA Price -->
+            <div class="price-panel">
+              <div class="symbol-large">NVDA</div>
+              <div class="price-large" id="nvda-price">$1,120.30</div>
+              <div class="change-large positive" id="nvda-change">+4.2%</div>
+            </div>
+            
+            <!-- TSLA Price -->
+            <div class="price-panel">
+              <div class="symbol-large">TSLA</div>
+              <div class="price-large" id="tsla-price">$245.10</div>
+              <div class="change-large negative" id="tsla-change">-2.8%</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div class="right-column">
+          <!-- Market Movers -->
+          <div class="movers-section">
+            <div class="section-title">MARKET MOVERS</div>
+            <div class="movers-grid">
+              <!-- Gainers -->
+              <div class="mover-column">
+                <div class="column-title gainers-title">TOP GAINERS</div>
+                <div class="mover-list">
+                  <div class="mover-item">
+                    <div class="mover-symbol">NVDA</div>
+                    <div class="mover-price positive" id="gainer-nvda">$1,120.30</div>
+                  </div>
+                  <div class="mover-item">
+                    <div class="mover-symbol">META</div>
+                    <div class="mover-price positive" id="gainer-meta">$458.20</div>
+                  </div>
+                  <div class="mover-item">
+                    <div class="mover-symbol">AMZN</div>
+                    <div class="mover-price positive" id="gainer-amzn">$178.40</div>
+                  </div>
+                  <div class="mover-item">
+                    <div class="mover-symbol">MSFT</div>
+                    <div class="mover-price positive" id="gainer-msft">$492.01</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Losers -->
+              <div class="mover-column">
+                <div class="column-title losers-title">TOP LOSERS</div>
+                <div class="mover-list">
+                  <div class="mover-item">
+                    <div class="mover-symbol">TSLA</div>
+                    <div class="mover-price negative" id="loser-tsla">$245.10</div>
+                  </div>
+                  <div class="mover-item">
+                    <div class="mover-symbol">COIN</div>
+                    <div class="mover-price negative" id="loser-coin">$432.10</div>
+                  </div>
+                  <div class="mover-item">
+                    <div class="mover-symbol">DIS</div>
+                    <div class="mover-price negative" id="loser-dis">$103.10</div>
+                  </div>
+                  <div class="mover-item">
+                    <div class="mover-symbol">BA</div>
+                    <div class="mover-price negative" id="loser-ba">$176.80</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Crypto Section -->
+          <div class="crypto-section">
+            <div class="section-title">CRYPTO MARKET</div>
+            <div class="crypto-grid">
+              <!-- BTC -->
+              <div class="crypto-item">
+                <div class="crypto-symbol">BTC</div>
+                <div class="crypto-price positive" id="btc-price">$91,171.39</div>
+                <div class="crypto-change positive" id="btc-change">+0.88%</div>
+              </div>
+              
+              <!-- ETH -->
+              <div class="crypto-item">
+                <div class="crypto-symbol">ETH</div>
+                <div class="crypto-price positive" id="eth-price">$3,032.41</div>
+                <div class="crypto-change positive" id="eth-change">+0.41%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="footer">
+        <div class="time-info">
+          <div class="date-time">
+            <span id="current-date">Jan 14, 2025</span>
+            <span>•</span>
+            <span id="current-time">12:45:00 AM UTC</span>
+          </div>
+        </div>
+        
+        <div class="news-ticker">
+          <div class="ticker-content" id="news-ticker">
+            • Apple delays AI rollout • NVDA hits all-time high • BTC breaks $91K • Fed maintains rates • Tesla announces new models • Market volatility increases • Tech stocks rally • Crypto regulation talks •
+          </div>
+        </div>
+        
+        <div class="live-status">
+          <div class="live-badge">● LIVE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Stock data with realistic base prices
+    const stockData = {
+      'NVDA': { base: 1120.30, symbol: 'NVDA', name: 'NVIDIA' },
+      'TSLA': { base: 245.10, symbol: 'TSLA', name: 'Tesla' },
+      'META': { base: 458.20, symbol: 'META', name: 'Meta' },
+      'AMZN': { base: 178.40, symbol: 'AMZN', name: 'Amazon' },
+      'MSFT': { base: 492.01, symbol: 'MSFT', name: 'Microsoft' },
+      'COIN': { base: 432.10, symbol: 'COIN', name: 'Coinbase' },
+      'DIS': { base: 103.10, symbol: 'DIS', name: 'Disney' },
+      'BA': { base: 176.80, symbol: 'BA', name: 'Boeing' }
+    };
+    
+    // Crypto data
+    const cryptoData = {
+      'BTC': { base: 91171.39, symbol: 'BTC', name: 'Bitcoin' },
+      'ETH': { base: 3032.41, symbol: 'ETH', name: 'Ethereum' }
+    };
+    
+    // Update real-time clock
+    function updateClock() {
+      const now = new Date();
+      const dateOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+      const timeOptions = { 
+        hour12: true, 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'UTC' 
+      };
+      
+      const dateStr = now.toLocaleDateString('en-US', dateOptions);
+      const timeStr = now.toLocaleTimeString('en-US', timeOptions);
+      
+      document.getElementById('current-date').textContent = dateStr;
+      document.getElementById('current-time').textContent = timeStr;
+    }
+    
+    // Generate realistic price change
+    function generatePriceChange(basePrice) {
+      // Smaller variation for more realistic movement
+      const changePercent = (Math.random() * 0.6) - 0.3; // -0.3% to +0.3%
+      const changeAmount = basePrice * (changePercent / 100);
+      const newPrice = basePrice + changeAmount;
+      return {
+        price: newPrice,
+        changePercent: changePercent,
+        changeAmount: changeAmount,
+        isPositive: changePercent >= 0
+      };
+    }
+    
+    // Update stock prices
+    function updateStockPrices() {
+      // Update main stocks
+      ['NVDA', 'TSLA'].forEach(symbol => {
+        const data = stockData[symbol];
+        const change = generatePriceChange(data.base);
+        
+        const priceElement = document.getElementById(`${symbol.toLowerCase()}-price`);
+        const changeElement = document.getElementById(`${symbol.toLowerCase()}-change`);
+        
+        if (priceElement && changeElement) {
+          priceElement.textContent = `$${change.price.toFixed(2)}`;
+          changeElement.textContent = `${change.isPositive ? '+' : ''}${change.changePercent.toFixed(1)}%`;
+          changeElement.className = change.isPositive ? 'change-large positive' : 'change-large negative';
+        }
+      });
+      
+      // Update gainers
+      ['NVDA', 'META', 'AMZN', 'MSFT'].forEach(symbol => {
+        const data = stockData[symbol];
+        const change = generatePriceChange(data.base);
+        const element = document.getElementById(`gainer-${symbol.toLowerCase()}`);
+        if (element) {
+          element.textContent = `$${change.price.toFixed(2)}`;
+          element.className = change.isPositive ? 'mover-price positive' : 'mover-price negative';
+        }
+      });
+      
+      // Update losers
+      ['TSLA', 'COIN', 'DIS', 'BA'].forEach(symbol => {
+        const data = stockData[symbol];
+        const change = generatePriceChange(data.base);
+        const element = document.getElementById(`loser-${symbol.toLowerCase()}`);
+        if (element) {
+          element.textContent = `$${change.price.toFixed(2)}`;
+          element.className = change.isPositive ? 'mover-price positive' : 'mover-price negative';
+        }
+      });
+    }
+    
+    // Update crypto prices
+    function updateCryptoPrices() {
+      Object.keys(cryptoData).forEach(symbol => {
+        const data = cryptoData[symbol];
+        const change = generatePriceChange(data.base);
+        
+        const priceElement = document.getElementById(`${symbol.toLowerCase()}-price`);
+        const changeElement = document.getElementById(`${symbol.toLowerCase()}-change`);
+        
+        if (priceElement && changeElement) {
+          priceElement.textContent = `$${change.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+          changeElement.textContent = `${change.isPositive ? '+' : ''}${change.changePercent.toFixed(2)}%`;
+          priceElement.className = change.isPositive ? 'crypto-price positive' : 'crypto-price negative';
+          changeElement.className = change.isPositive ? 'crypto-change positive' : 'crypto-change negative';
+        }
+      });
+    }
+    
+    // Rotate breaking news
+    const newsHeadlines = [
+      {
+        title: "Apple delays next-gen AI rollout to 2026",
+        subtitle: "Apple shifts major AI features citing integration delays."
+      },
+      {
+        title: "Federal Reserve maintains interest rates steady",
+        subtitle: "Central bank signals potential cuts later this year amid inflation concerns."
+      },
+      {
+        title: "Bitcoin breaks $91,000 resistance level",
+        subtitle: "Cryptocurrency market shows strong bullish momentum with BTC leading."
+      },
+      {
+        title: "NVIDIA reports record quarterly earnings",
+        subtitle: "AI chip demand continues to drive growth with 265% YoY increase."
+      },
+      {
+        title: "Tesla announces three new EV models for 2025",
+        subtitle: "Expansion plans revealed in annual shareholder meeting."
+      },
+      {
+        title: "Amazon Web Services expands AI offerings",
+        subtitle: "New cloud services target enterprise AI market with custom solutions."
+      }
+    ];
+    
+    const newsTickerItems = [
+      "Apple delays AI rollout",
+      "NVDA hits all-time high",
+      "BTC breaks $91K",
+      "Fed maintains rates",
+      "Tesla announces new models",
+      "Market volatility increases",
+      "Tech stocks rally",
+      "Crypto regulation talks",
+      "Earnings season begins",
+      "Inflation data released",
+      "Oil prices stabilize",
+      "Gold at record highs",
+      "USD strengthens",
+      "AI stocks surge"
+    ];
+    
+    let currentNewsIndex = 0;
+    
+    function rotateNews() {
+      const news = newsHeadlines[currentNewsIndex];
+      document.querySelector('.breaking-title').textContent = news.title;
+      document.querySelector('.breaking-subtitle').textContent = news.subtitle;
+      
+      // Update ticker
+      const tickerElement = document.getElementById('news-ticker');
+      const tickerItems = [...newsTickerItems];
+      // Rotate items
+      tickerItems.push(tickerItems.shift());
+      tickerElement.textContent = tickerItems.map(item => `• ${item}`).join(' ') + ' •';
+      
+      currentNewsIndex = (currentNewsIndex + 1) % newsHeadlines.length;
+    }
+    
+    // Initialize everything
+    document.addEventListener('DOMContentLoaded', function() {
+      updateClock();
+      updateStockPrices();
+      updateCryptoPrices();
+      rotateNews();
+      
+      // Update clock every second
+      setInterval(updateClock, 1000);
+      
+      // Update stock prices every 5 seconds
+      setInterval(updateStockPrices, 5000);
+      
+      // Update crypto prices every 8 seconds
+      setInterval(updateCryptoPrices, 8000);
+      
+      // Rotate news every 25 seconds
+      setInterval(rotateNews, 25000);
+    });
+    
+    // Subscribe button functionality
+    document.querySelector('.subscribe-btn').addEventListener('click', function() {
+      const originalText = this.textContent;
+      const originalBg = this.style.background;
+      
+      this.textContent = "✓ SUBSCRIBED";
+      this.style.background = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+      
+      setTimeout(() => {
+        this.textContent = originalText;
+        this.style.background = originalBg;
+      }, 3000);
+    });
+    
+    // Add hover effects to price panels
+    document.querySelectorAll('.price-panel, .mover-item, .crypto-item').forEach(item => {
+      item.addEventListener('mouseenter', function() {
+        this.style.transform = this.classList.contains('price-panel') 
+          ? 'translateY(-4px)' 
+          : this.classList.contains('crypto-item')
+          ? 'scale(1.05)'
+          : 'translateX(5px)';
+      });
+      
+      item.addEventListener('mouseleave', function() {
+        this.style.transform = 'none';
+      });
+    });
+  </script>
+</body>
+</html>
